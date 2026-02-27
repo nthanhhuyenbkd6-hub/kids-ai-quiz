@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kids AI Quiz (3 Levels)</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#121c33; --muted:#9fb0d0; --text:#e9f0ff;
+      --accent:#6ee7b7; --danger:#fb7185; --warn:#fbbf24;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 20% 0%, #1b2a55 0%, var(--bg) 60%);color:var(--text);display:flex;align-items:center;justify-content:center;padding:16px}
+    .app{width:min(920px,100%);background:rgba(18,28,51,.85);border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden}
+    header{padding:18px 18px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
+    .title{display:flex;flex-direction:column;gap:2px}
+    .title b{font-size:18px}
+    .title span{color:var(--muted);font-size:13px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    main{padding:18px}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
+    .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+    .qhead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+    .qno{font-size:13px;color:var(--muted)}
+    .qtext{font-size:18px;line-height:1.25;margin:6px 0 0}
+    .choices{display:grid;gap:10px;margin-top:14px}
+    button.choice{
+      text-align:left; cursor:pointer; width:100%;
+      padding:12px 12px; border-radius:14px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--text); font-size:15px;
+      transition:transform .05s ease, background .2s ease, border-color .2s ease;
+    }
+    button.choice:hover{background:rgba(255,255,255,.08)}
+    button.choice:active{transform:scale(.99)}
+    button.choice[disabled]{opacity:.65;cursor:not-allowed}
+    .meta{display:grid;gap:10px}
+    .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10)}
+    .bar > i{display:block;height:100%;width:0%;background:linear-gradient(90deg, #60a5fa, var(--accent))}
+    .stat{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+    .big{font-size:28px;font-weight:800}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btn{
+      cursor:pointer;border-radius:12px;padding:10px 12px;font-weight:700;
+      border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text)
+    }
+    .btn.primary{background:rgba(110,231,183,.14);border-color:rgba(110,231,183,.35)}
+    .btn.danger{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.35)}
+    .toast{margin-top:12px;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--muted);font-size:14px}
+    .toast.good{border-color:rgba(110,231,183,.35);color:#c8ffe9}
+    .toast.bad{border-color:rgba(251,113,133,.35);color:#ffd2da}
+    .start{display:grid;gap:12px;text-align:left}
+    .start h1{margin:0;font-size:22px}
+    .start p{margin:0;color:var(--muted);line-height:1.35}
+    .levelchips{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--muted);font-size:13px}
+    .result h2{margin:0 0 6px}
+    .result p{margin:0;color:var(--muted)}
+    .review{margin-top:12px;max-height:260px;overflow:auto;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
+    .review table{width:100%;border-collapse:collapse;font-size:13px}
+    .review th,.review td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+    .review th{position:sticky;top:0;background:#0f1830;color:var(--muted);text-align:left}
+    .tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.12)}
+    .tag.ok{color:#c8ffe9;border-color:rgba(110,231,183,.35);background:rgba(110,231,183,.10)}
+    .tag.no{color:#ffd2da;border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.10)}
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Kids AI Quiz">
+    <header>
+      <div class="title">
+        <b>Kids AI Quiz</b>
+        <span>3 levels • 20 questions • total 100 points (5 each correct)</span>
+      </div>
+      <div class="row">
+        <div class="pill" id="pillLevel">Level: -</div>
+        <div class="pill" id="pillScore">Score: 0 / 100</div>
+        <div class="pill" id="pillTime">Time: --</div>
+      </div>
+    </header>
+
+    <main id="root"></main>
+  </div>
+
+<script>
+(() => {
+  const QUESTIONS = [
+    { q:"This AI application suggests movies and songs based on your past choices.", a:"Recommendation system",
+      c:["Recommendation system","Sorting algorithm","Data training","Predictive model"] },
+    { q:"This area of AI focuses on creating machines that perform real-world tasks.", a:"Robotics",
+      c:["Chatbots","Robotics","Deep learning","Algorithm analysis"] },
+    { q:"This term describes when an AI system makes unfair decisions based on skewed training data.", a:"Algorithmic bias",
+      c:["Random error","Algorithmic bias","Data noise","Model overfitting"] },
+    { q:"This type of machine learning uses many layers in a network to analyze data.", a:"Deep learning",
+      c:["Deep learning","Supervised learning","Unsupervised learning","Reinforcement learning"] },
+    { q:"This AI architecture mimics the human brain to learn from data.", a:"Neural network",
+      c:["Decision tree","Linear regression","Neural network","K-means clustering"] },
+    { q:"This process cleans and organizes raw data for AI training.", a:"Data preprocessing",
+      c:["Model evaluation","Algorithm design","Feature extraction","Data preprocessing"] },
+    { q:"This term describes a set of rules or steps used by AI to solve problems or make decisions.", a:"algorithm",
+      c:["algorithm","database","interface","network"] },
+    { q:"This process uses testing and simulation to see how well an AI performs under different conditions.", a:"model evaluation",
+      c:["data collection","model evaluation","parameter setting","algorithm development"] },
+    { q:"This field in computer science aims to create machines that learn and solve problems similar to humans.", a:"artificial intelligence",
+      c:["software engineering","robotics","artificial intelligence","game design"] },
+    { q:"This key part of AI research focuses on teaching machines to understand and mimic human language.", a:"natural language processing",
+      c:["computer vision","natural language processing","statistics","data mining"] },
+    { q:"This term refers to the small pieces of information that make up the data an AI learns from.", a:"features",
+      c:["features","tasks","labels","results"] },
+    { q:"This everyday application uses AI to predict the next word you might type.", a:"autocomplete",
+      c:["autocomplete","spell checker","grammar tool","search engine"] },
+    { q:"This type of data is kept separate from training data to assess an AI's performance.", a:"test data",
+      c:["training data","test data","raw data","dummy data"] },
+    { q:"This term describes a pre-trained AI tool that generates human-like responses.", a:"language model",
+      c:["image model","language model","speech recognizer","recommender system"] },
+    { q:"This process, where data is fed into an AI model so it can learn patterns, is known as.", a:"training",
+      c:["training","testing","evaluating","predicting"] },
+    { q:"This Google-developed AI tool competes with ChatGPT in smart conversations.", a:"Gemini",
+      c:["ChatGPT","Gemini","Bard","Cortana"] },
+    { q:"This AI tool answers questions in natural language and helps with homework.", a:"ChatGPT",
+      c:["Gemini","Siri","Alexa","ChatGPT"] },
+    { q:"This type of machine learning finds patterns in data without labels.", a:"Unsupervised learning",
+      c:["Supervised learning","Reinforcement learning","Active learning","Unsupervised learning"] },
+    { q:"This category of machine learning trains using labeled examples.", a:"Supervised learning",
+      c:["Unsupervised learning","Supervised learning","Reinforcement learning","Transfer learning"] },
+    { q:"This AI application suggests movies and songs based on your past choices.", a:"Recommendation system",
+      c:["Recommendation system","Sorting algorithm","Data training","Predictive model"] },
+  ];
+
+  const LEVELS = [
+    { name:"Level 1", from:0, to:6 },   // 7 questions
+    { name:"Level 2", from:7, to:13 },  // 7 questions
+    { name:"Level 3", from:14, to:19 }, // 6 questions
+  ];
+
+  const POINTS_PER_CORRECT = 5;
+  const TOTAL_MARKS = 100;
+  const TIME_PER_QUESTION = 80; // seconds
+
+  const $ = (id) => document.getElementById(id);
+  const root = $("root");
+  const pillLevel = $("pillLevel");
+  const pillScore = $("pillScore");
+  const pillTime = $("pillTime");
+
+  // Simple sound effects (no external files)
+  let audioCtx = null;
+  function beep({ freq=660, dur=0.12, type="sine", gain=0.06 } = {}) {
+    try{
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + dur);
+    }catch(e){/* sound is a luxury, apparently */}
+  }
+  function sfxCorrect(){ beep({freq:880,dur:0.10,type:"triangle",gain:0.07}); setTimeout(()=>beep({freq:1175,dur:0.12,type:"triangle",gain:0.07}),80); }
+  function sfxWrong(){ beep({freq:220,dur:0.16,type:"sawtooth",gain:0.06}); }
+
+  const state = {
+    started:false,
+    idx:0,
+    score:0,
+    remaining:TIME_PER_QUESTION,
+    timer:null,
+    locked:false,
+    answers: Array(QUESTIONS.length).fill(null) // {picked, correct, points, timeUp}
+  };
+
+  function levelForIndex(i){
+    const L = LEVELS.find(l => i>=l.from && i<=l.to);
+    return L ? L.name : "-";
+  }
+
+  function updateTopBar(){
+    pillLevel.textContent = `Level: ${levelForIndex(state.idx)}`;
+    pillScore.textContent = `Score: ${state.score} / ${TOTAL_MARKS}`;
+    pillTime.textContent = `Time: ${state.started ? `${state.remaining}s` : "--"}`;
+  }
+
+  function clearTimer(){
+    if(state.timer){ clearInterval(state.timer); state.timer=null; }
+  }
+
+  function startTimer(){
+    clearTimer();
+    state.remaining = TIME_PER_QUESTION;
+    state.timer = setInterval(() => {
+      state.remaining -= 1;
+      if(state.remaining <= 0){
+        state.remaining = 0;
+        clearTimer();
+        if(!state.locked){
+          lockAndRecord(null, true); // time up
+          setTimeout(nextQuestion, 500);
+        }
+      }
+      updateTopBar();
+      const bar = document.querySelector(".bar > i");
+      if(bar){
+        const pct = Math.max(0, (state.remaining / TIME_PER_QUESTION) * 100);
+        bar.style.width = pct + "%";
+      }
+    }, 1000);
+  }
+
+  function lockAndRecord(picked, timeUp=false){
+    state.locked = true;
+    const q = QUESTIONS[state.idx];
+    const correct = picked !== null && picked === q.a;
+    const points = correct ? POINTS_PER_CORRECT : 0;
+    state.answers[state.idx] = { picked, correct, points, timeUp };
+    state.score += points;
+    updateTopBar();
+    if(correct) sfxCorrect(); else sfxWrong();
+  }
+
+  function nextQuestion(){
+    state.locked = false;
+    if(state.idx < QUESTIONS.length - 1){
+      state.idx += 1;
+      render();
+      startTimer();
+      updateTopBar();
+    }else{
+      finish();
+    }
+  }
+
+  function startGame(){
+    // user gesture to unlock audio on some browsers
+    sfxCorrect();
+    state.started = true;
+    state.idx = 0;
+    state.score = 0;
+    state.answers = Array(QUESTIONS.length).fill(null);
+    state.locked = false;
+    render();
+    startTimer();
+    updateTopBar();
+  }
+
+  function restart(){
+    clearTimer();
+    state.started = false;
+    state.idx = 0;
+    state.score = 0;
+    state.remaining = TIME_PER_QUESTION;
+    state.locked = false;
+    state.answers = Array(QUESTIONS.length).fill(null);
+    render();
+    updateTopBar();
+  }
+
+  function finish(){
+    clearTimer();
+    const correctCount = state.answers.filter(x => x && x.correct).length;
+    const wrongCount = QUESTIONS.length - correctCount;
+    const htmlRows = state.answers.map((x, i) => {
+      const q = QUESTIONS[i];
+      const status = x?.correct ? `<span class="tag ok">Correct</span>` : `<span class="tag no">Wrong</span>`;
+      const picked = x?.picked ?? (x?.timeUp ? "(Time up)" : "(No answer)");
+      return `
+        <tr>
+          <td>#${i+1}</td>
+          <td>${q.q}</td>
+          <td>${picked}</td>
+          <td>${q.a}</td>
+          <td>${status}</td>
+          <td>${x?.points ?? 0}</td>
+        </tr>
+      `;
+    }).join("");
+
+    root.innerHTML = `
+      <div class="card result">
+        <h2>Finished</h2>
+        <p>Total score: <b class="big">${state.score}</b> / ${TOTAL_MARKS}</p>
+        <p>Correct: <b>${correctCount}</b> • Wrong: <b>${wrongCount}</b></p>
+
+        <div class="controls">
+          <button class="btn primary" id="btnRestart">Play again</button>
+        </div>
+
+        <div class="review" aria-label="Review table">
+          <table>
+            <thead>
+              <tr>
+                <th>Q</th>
+                <th>Question</th>
+                <th>Your answer</th>
+                <th>Correct answer</th>
+                <th>Status</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody>${htmlRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    $("btnRestart").onclick = restart;
+    updateTopBar();
+    pillLevel.textContent = "Level: -";
+    pillTime.textContent = "Time: --";
+  }
+
+  function renderStart(){
+    root.innerHTML = `
+      <div class="card start">
+        <h1>Ready to play?</h1>
+        <p>
+          20 questions split into 3 levels. Each question has ${TIME_PER_QUESTION} seconds.
+          Correct = ${POINTS_PER_CORRECT} points, wrong/time up = 0. Total = ${TOTAL_MARKS}.
+        </p>
+        <div class="levelchips">
+          <span class="chip">Level 1: Q1–Q7</span>
+          <span class="chip">Level 2: Q8–Q14</span>
+          <span class="chip">Level 3: Q15–Q20</span>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="btnStart">Start</button>
+        </div>
+        <div class="toast">
+          Tip: Sound plays on correct answers. If your browser blocks sound, click Start (it helps).
+        </div>
+      </div>
+    `;
+    $("btnStart").onclick = startGame;
+  }
+
+  function renderQuestion(){
+    const q = QUESTIONS[state.idx];
+    const progressPct = ((state.idx) / QUESTIONS.length) * 100;
+    const answered = state.answers[state.idx];
+
+    const choices = q.c.map(choice => {
+      const disabled = state.locked || !!answered;
+      return `<button class="choice" ${disabled ? "disabled":""} data-choice="${encodeURIComponent(choice)}">${choice}</button>`;
+    }).join("");
+
+    root.innerHTML = `
+      <div class="grid">
+        <div class="card">
+          <div class="qhead">
+            <div>
+              <div class="qno">Question ${state.idx + 1} / ${QUESTIONS.length} • ${levelForIndex(state.idx)}</div>
+              <div class="qtext">${q.q}</div>
+            </div>
+            <div class="pill">+${POINTS_PER_CORRECT} points</div>
+          </div>
+
+          <div class="choices" id="choices">${choices}</div>
+
+          <div class="toast ${answered ? (answered.correct ? "good":"bad") : ""}" id="toast">
+            ${answered
+              ? (answered.correct
+                  ? `Correct. +${POINTS_PER_CORRECT} points.`
+                  : `Wrong. Correct answer: <b>${q.a}</b>${answered.timeUp ? " (time up)" : ""}.`)
+              : "Pick an answer."}
+          </div>
+
+          <div class="controls">
+            <button class="btn" id="btnSkip" ${state.locked ? "disabled":""}>Skip</button>
+            <button class="btn primary" id="btnNext" ${answered ? "" : "disabled"}>${state.idx === QUESTIONS.length-1 ? "Finish" : "Next"}</button>
+            <button class="btn danger" id="btnQuit">Quit</button>
+          </div>
+        </div>
+
+        <div class="card meta">
+          <div>
+            <div class="stat"><span>Time left</span><span><b>${state.remaining}s</b></span></div>
+            <div class="bar" aria-label="Time bar"><i style="width:${(state.remaining / TIME_PER_QUESTION) * 100}%"></i></div>
+          </div>
+
+          <div>
+            <div class="stat"><span>Progress</span><span><b>${Math.round(progressPct)}%</b></span></div>
+            <div class="bar" aria-label="Progress bar"><i style="width:${progressPct}%"></i></div>
+          </div>
+
+          <div class="card" style="padding:12px;border-radius:14px;background:rgba(255,255,255,.03)">
+            <div class="stat"><span>Score</span><span><b>${state.score}</b> / ${TOTAL_MARKS}</span></div>
+            <div class="stat"><span>Correct so far</span><span><b>${state.answers.filter(x=>x && x.correct).length}</b></span></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Wire buttons
+    $("btnQuit").onclick = restart;
+    $("btnSkip").onclick = () => {
+      if(state.locked) return;
+      lockAndRecord(null, false);
+      $("btnNext").disabled = false;
+      document.querySelectorAll("button.choice").forEach(b => b.disabled = true);
+      $("toast").className = "toast bad";
+      $("toast").innerHTML = `Skipped. Correct answer: <b>${q.a}</b>.`;
+    };
+
+    $("btnNext").onclick = nextQuestion;
+
+    // Choice clicks
+    document.querySelectorAll("button.choice").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if(state.locked) return;
+        const picked = decodeURIComponent(btn.getAttribute("data-choice"));
+        lockAndRecord(picked, false);
+
+        // lock UI
+        document.querySelectorAll("button.choice").forEach(b => b.disabled = true);
+        $("btnNext").disabled = false;
+
+        const ans = state.answers[state.idx];
+        if(ans.correct){
+          $("toast").className = "toast good";
+          $("toast").textContent = `Correct. +${POINTS_PER_CORRECT} points.`;
+        }else{
+          $("toast").className = "toast bad";
+          $("toast").innerHTML = `Wrong. Correct answer: <b>${q.a}</b>.`;
+        }
+      });
+    });
+  }
+
+  function render(){
+    if(!state.started) renderStart();
+    else renderQuestion();
+  }
+
+  // init
+  render();
+  updateTopBar();
+})();
+</script>
+</body>
+</html>
